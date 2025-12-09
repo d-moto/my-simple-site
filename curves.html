@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadratic Curves - Math III Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- MathJax -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.html" class="logo">Math III Visualizer</a>
+        </div>
+    </nav>
+
+    <div class="container content-wrapper">
+        <h1 class="page-title">Quadratic Curves</h1>
+
+        <div class="control-panel">
+            <div class="formula-display">
+                <h3 id="equation-text">$$ \frac{x^2}{a^2} + \frac{y^2}{b^2} = 1 $$</h3>
+            </div>
+
+            <div class="controls-grid">
+                <div class="control-group">
+                    <label>Curve Type:</label>
+                    <select id="curveType" onchange="updatePlot()">
+                        <option value="ellipse">Ellipse (楕円)</option>
+                        <option value="hyperbola">Hyperbola (双曲線)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Parameter a: <span id="val-a">2</span></label>
+                    <input type="range" id="param-a" min="0.5" max="5" step="0.1" value="2" oninput="updatePlot()">
+                </div>
+
+                <div class="control-group">
+                    <label>Parameter b: <span id="val-b">1.5</span></label>
+                    <input type="range" id="param-b" min="0.5" max="5" step="0.1" value="1.5" oninput="updatePlot()">
+                </div>
+            </div>
+        </div>
+
+        <div id="plot-area" class="plot-container"></div>
+    </div>
+
+    <script>
+        function updatePlot() {
+            const a = parseFloat(document.getElementById('param-a').value);
+            const b = parseFloat(document.getElementById('param-b').value);
+            const type = document.getElementById('curveType').value;
+
+            document.getElementById('val-a').textContent = a;
+            document.getElementById('val-b').textContent = b;
+
+            let xValues = [];
+            let yValues = [];
+
+            // Generate points using parametric equations
+            const steps = 100;
+
+            if (type === 'ellipse') {
+                // Ellipse: x = a*cos(t), y = b*sin(t)
+                for (let i = 0; i <= steps; i++) {
+                    const t = (i / steps) * 2 * Math.PI;
+                    xValues.push(a * Math.cos(t));
+                    yValues.push(b * Math.sin(t));
+                }
+
+                // Update MathJax equation text
+                const eq = `\\\\frac{x^2}{${a * a < 100 && a % 1 === 0 ? Math.pow(a, 2) : 'a^2'}} + \\\\frac{y^2}{${b * b < 100 && b % 1 === 0 ? Math.pow(b, 2) : 'b^2'}} = 1`;
+                // Note: Updating MathJax dynamically is tricky, simplified for now to generic or simple update
+                // For this demo, let's keep static static generic equation in JS update or re-render
+                // document.getElementById('equation-text').innerHTML = `$$ \\frac{x^2}{${a}^2} + \\frac{y^2}{${b}^2} = 1 $$`;
+                // MathJax.typeset(); // Simplistic re-render
+            } else {
+                // Hyperbola: x = a*sec(t), y = b*tan(t)
+                // Need two branches
+                // Branch 1 (Right): -pi/2 < t < pi/2
+                for (let i = -steps / 2 + 1; i < steps / 2; i++) {
+                    const t = (i / steps) * Math.PI * 0.9; // 0.9 to avoid infinity
+                    xValues.push(a / Math.cos(t));
+                    yValues.push(b * Math.tan(t));
+                }
+                // Branch 2 (Left): 
+                // Using separation for Plotly lines might be needed using null or separate traces
+                // Let's do a simple approach: x = +/- a cosh(t), y = b sinh(t) ?? No, stick to sec/tan but handle jump
+
+                // Re-approach for Hyperbola to get clean lines:
+                // x = +/- a * cosh(t), y = b * sinh(t) 
+                xValues = []; yValues = [];
+
+                // Right branch
+                for (let t = -2; t <= 2; t += 0.1) {
+                    xValues.push(a * Math.cosh(t));
+                    yValues.push(b * Math.sinh(t));
+                }
+                // Break line
+                xValues.push(null);
+                yValues.push(null);
+                // Left branch
+                for (let t = -2; t <= 2; t += 0.1) {
+                    xValues.push(-a * Math.cosh(t));
+                    yValues.push(b * Math.sinh(t));
+                }
+            }
+
+            const trace = {
+                x: xValues,
+                y: yValues,
+                mode: 'lines',
+                line: {
+                    color: '#6366f1',
+                    width: 3
+                }
+            };
+
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(30, 41, 59, 0.5)',
+                xaxis: {
+                    range: [-6, 6],
+                    zeroline: true,
+                    zerolinecolor: '#94a3b8',
+                    gridcolor: '#334155'
+                },
+                yaxis: {
+                    range: [-6, 6],
+                    zeroline: true,
+                    zerolinecolor: '#94a3b8',
+                    gridcolor: '#334155'
+                },
+                margin: { t: 20, r: 20, b: 20, l: 20 },
+                showlegend: false
+            };
+
+            const config = { responsive: true };
+
+            Plotly.newPlot('plot-area', [trace], layout, config);
+
+            // Update Equation
+            const operator = type === 'ellipse' ? '+' : '-';
+            const latex = `$$ \\frac{x^2}{${a}^2} ${operator} \\frac{y^2}{${b}^2} = 1 $$`;
+            const eqEl = document.getElementById('equation-text');
+            eqEl.textContent = latex;
+            if (window.MathJax) {
+                MathJax.typesetPromise([eqEl]);
+            }
+        }
+
+        // Initial Plot
+        updatePlot();
+    </script>
+</body>
+
+</html>
